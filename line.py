@@ -90,11 +90,11 @@ def lignes_ont_angle_suffisant(ligne1, ligne2, seuil_angle):
 for i in range(1,len(list_lines)):
     line_halal = list_lines[0]
     if lignes_ont_angle_suffisant(list_lines[i],line_halal,seuil_angle=80):
-        print('SALOPE YOUNES')
+        print('Intersection')
         detect_inter = 1
         break
     else:
-        print('MERDE')
+        print('No intersection')
         detect_inter = 0 
         
 
