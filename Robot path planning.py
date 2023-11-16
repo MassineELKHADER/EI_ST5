@@ -25,8 +25,8 @@ serial_file = None
 motor_speed = 50
 step_length = 0.1
 i = 0
-List = ['right', 'left', 'forward', 'backward']
-rot = 6
+List = ['right', 'left', 'left', 'backward', 'right', 'right', 'left']
+rot = 1.6
 
 
 def connect_to_arduino():
@@ -71,9 +71,9 @@ def imageprocessing(image):
     h, w = image.shape[:2]
     print(w, h)
 
-    blur = cv2.blur(image, (5, 5))
+    blur = cv2.blur(image, (55, 55))
     # ret,thresh1 = cv2.threshold(image,127,255,cv2.THRESH_BINARY)
-    ret, thresh1 = cv2.threshold(blur, 160, 255, cv2.THRESH_BINARY)
+    ret, thresh1 = cv2.threshold(blur, 190, 255, cv2.THRESH_BINARY)
     hsv = cv2.cvtColor(thresh1, cv2.COLOR_RGB2HSV)
 
     # Define range of white color in HSV
@@ -107,6 +107,7 @@ def imageprocessing(image):
         # print("Centroid of the biggest area: ({}, {})".format(cx, cy))
     else:
         cx = 320
+        cy = 0
         print("No Centroid Found")
     error = 320-cx
     sq = min(h, w)//100
@@ -116,7 +117,7 @@ def imageprocessing(image):
     cv2.rectangle(contour_image, (top_left_x, top_left_y),
                   (top_left_x + sq, top_left_y + sq), (0, 0, 255), 2)
     edges = cv2.Canny(thresh1, 50, 150)
-    lines = cv2.HoughLines(edges, 1, np.pi / 180, threshold=200)
+    lines = cv2.HoughLines(edges, 1, np.pi / 180, threshold=100)
     list_lines = []
     if lines is not None:
         for line in lines:
@@ -156,8 +157,8 @@ def imageprocessing(image):
         return angle > seuil_angle
     if len(list_lines) > 1:
         for i in range(1, len(list_lines)):
-            line_halal = list_lines[0]
-            if lignes_ont_angle_suffisant(list_lines[i], line_halal, seuil_angle=80):
+            line_halal = [(320, 0), (320, 100)]
+            if lignes_ont_angle_suffisant(list_lines[i], line_halal, seuil_angle=70):
                 print('Intersection')
                 detect_inter = 1
                 break
@@ -168,21 +169,21 @@ def imageprocessing(image):
     return (contour_image, error, detect_inter)
 
 
-def read_distance_from_serial():
-    # Replace 'COM3' with the correct serial port
-    ser = serial.Serial('/dev/ttyACM0', 9600)
-    time.sleep(2)  # Allow time for Arduino to initialize
-
-    while True:
-        if ser.in_waiting > 0:
-            serial_data = ser.readline().decode().strip()
-            if serial_data.startswith("Distance:"):
-                distance_in_cm = float(serial_data[len("Distance:"):])
-                return distance_in_cm
+# def read_distance_from_serial():
+# Replace 'COM3' with the correct serial port
+# ser = serial.Serial('/dev/ttyACM0', 9600)
+# time.sleep(2)  # Allow time for Arduino to initialize
+##
+# while True:
+# if ser.in_waiting > 0:
+# serial_data = ser.readline().decode().strip()
+# if serial_data.startswith("Distance:"):
+# distance_in_cm = float(serial_data[len("Distance:"):])
+# return distance_in_cm
 
 
 def code_direction(List, i):
-    time.sleep(3)
+    time.sleep(1)
     direction = List[i]
     if direction == 'forward':
         write_order(serial_file, Order.MOTOR)
@@ -212,25 +213,42 @@ def stop_robot():
     write_order(serial_file, Order.STOP)
 
 
-def detect_obstacle(distance_in_cm, threshold=50):
-    if distance_in_cm <= threshold:
-        return True  # Obstacle detected
+def detect_obstacle(thresh):
+    write_order(serial_file, Order.READSENSOR)
+    while True:
+        try:
+            g = read_i16(serial_file)
+            break
+        except struct.error:
+            pass
+        except TimeoutError:
+            write_order(serial_file, Order.READENCODERl)
+            pass
+    if g == 'Invalid':
+        return False
+    elif g > thresh:
+        return False
     else:
-        return False  # No obstacle detected
+        return True
 
 
 for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port=True):
-    distance = read_distance_from_serial()
-    if detect_obstacle(distance):
+    # distance = read_distance_from_serial()
+    if detect_obstacle(75):
         stop_robot()
+        break
     else:
         image, error, inter = imageprocessing(frame.array)
         cv2.imshow("Chicha Kaloud Younes", image)
-        delta = int((0.2)*error)
+        delta = int((0.115)*error)
         if inter == 1:
-            code_direction(List, i)
-            i += 1
-        elif abs(error) > 30:
+            if i == len(List):
+                write_order(serial_file, Order.STOP)
+                break
+            else:
+                code_direction(List, i)
+                i += 1
+        elif abs(error) > 10:
             if delta > 0:
                 VG = motor_speed+delta//2
                 VD = motor_speed-delta//2
@@ -241,11 +259,11 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
             write_i8(serial_file, VG)  # valeur moteur droit
             write_i8(serial_file, VD)  # valeur moteur gauche
             time.sleep(step_length)
-        else:
-            write_order(serial_file, Order.MOTOR)
-            write_i8(serial_file, motor_speed)  # valeur moteur droit
-            write_i8(serial_file, motor_speed)  # valeur moteur gauche
-            time.sleep(step_length)
+# else:
+# write_order(serial_file, Order.MOTOR)
+# write_i8(serial_file, motor_speed)  # valeur moteur droit
+# write_i8(serial_file, motor_speed)  # valeur moteur gauche
+# time.sleep(step_length)
         key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):
             break
