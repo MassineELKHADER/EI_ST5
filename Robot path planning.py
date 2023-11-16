@@ -10,6 +10,8 @@ from time import sleep
 from picamera import PiCamera
 import struct
 import serial
+from oders import *
+
 try:
     import queue
 except ImportError:
@@ -19,13 +21,15 @@ from robust_serial import write_order, Order, write_i8, write_i16, read_i16, rea
 from robust_serial.utils import open_serial_port
 from constants import BAUDRATE
 
+run_ui()
 emptyException = queue.Empty
 fullException = queue.Full
 serial_file = None
 motor_speed = 50
 step_length = 0.1
 i = 0
-List = ['right', 'left', 'left', 'backward', 'right', 'right', 'left']
+List = brute_force_tsp_manhattan_dynamic(
+    order_info["start"], order_info["delivery"], [])
 rot = 1.6
 
 

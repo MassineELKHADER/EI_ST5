@@ -18,7 +18,6 @@ order_info = {'delivery': []}
 point_id = []  # id of different points drawn
 current_orientation = 'forward'
 current_ang = 90
-commands = []
 
 # Creating a canvas
 canvas = tk.Canvas(root, width=canva_size, height=canva_size, bg="white")
@@ -148,7 +147,10 @@ undo_button = tk.Button(root, text="Undo", command=undo)
 undo_button.pack()
 finished_button = tk.Button(root, text="Order", command=finished)
 finished_button.pack()
-root.mainloop()
+
+
+def run_ui():
+    root.mainloop()
 
 
 # Calculating the optimal path
@@ -252,7 +254,7 @@ def a_star_search(start, goal, unavailable_cells):
 
 def brute_force_tsp_manhattan_dynamic(start, points, unavailable_cells):
     """Find the shortest path in a dynamic environment using brute force with A* search."""
-    global commands
+    commands = []
     shortest_path = []
     current_position = start
     points = points.copy()
@@ -285,24 +287,4 @@ def brute_force_tsp_manhattan_dynamic(start, points, unavailable_cells):
     else:
         print("No path found to return to the start point", start)
 
-    return shortest_path
-
-
-shortest_path = brute_force_tsp_manhattan_dynamic(
-    order_info["start"], order_info["delivery"], [])
-print(commands)
-
-# Defining the commands
-# if current_orientation != next:
-# if current_orientation == 'forward' and next == 'right' or \
-# current_orientation == 'back' and next == 'left' or \
-# current_orientation == 'left' and next == 'forward' or \
-# current_orientation == 'right' and next == 'back':
-# orientation_commands.append(90)
-# elif current_orientation == 'forward' and next == 'left' or \
-# current_orientation == 'back' and next == 'right' or \
-# current_orientation == 'left' and next == 'back' or \
-# current_orientation == 'right' and next == 'forward':
-# orientation_commands.append(-90)
-# else:
-# orientation_commands.append(180)
+    return commands
